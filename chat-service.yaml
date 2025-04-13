@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: fastapi-chat-service-deployment
+  name: fastapi-chat-service-deployment
+spec:
+  replicas: 10
+  selector:
+    matchLabels:
+      app: fastapi-chat-service-deployment
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: fastapi-chat-service-deployment
+    spec:
+      containers:
+        - image: fastapi-chat-service-image:latest
+          name: fastapi-chat-service-container
+          resources: {}
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 80
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fastapi-chat-service
+spec:
+  selector:
+    app: fastapi-chat-service-deployment #this will target all pods with this label
+  type: LoadBalancer
+  sessionAffinity: None
+  ports:
+    - protocol: TCP
+      port: 80 #port on which you can access this service from browser, can be any available port
+      targetPort: 80 #port yout fastapi app is listening inside a container
