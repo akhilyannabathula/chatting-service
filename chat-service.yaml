@@ -6,7 +6,7 @@ metadata:
     app: fastapi-chat-service-deployment
   name: fastapi-chat-service-deployment
 spec:
-  replicas: 10
+  replicas: 3
   selector:
     matchLabels:
       app: fastapi-chat-service-deployment
@@ -24,6 +24,18 @@ spec:
           imagePullPolicy: Never
           ports:
             - containerPort: 80
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: ACTIVEMQ_HOST
+              value: "activemq.default.svc.cluster.local"
+
 
 ---
 apiVersion: v1
@@ -39,3 +51,47 @@ spec:
     - protocol: TCP
       port: 80 #port on which you can access this service from browser, can be any available port
       targetPort: 80 #port yout fastapi app is listening inside a container
+
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: activemq
+  labels:
+    app: activemq
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: activemq
+  template:
+    metadata:
+      labels:
+        app: activemq
+    spec:
+      containers:
+        - name: activemq
+          image: apache/activemq-artemis:latest-alpine
+          ports:
+            - containerPort: 61616  # For AMQ connection (default port)
+            - containerPort: 8161  # For Admin console
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: activemq
+spec:
+  selector:
+    app: activemq
+  type: LoadBalancer  # Use NodePort if you're not on a cloud service
+  ports:
+    - name: amq
+      protocol: TCP
+      port: 61616        # ActiveMQ Client port
+      targetPort: 61616  # Port inside the container
+    - name: admin
+      protocol: TCP
+      port: 8161         # ActiveMQ Web Admin Console port
+      targetPort: 8161   # Port inside the container
+
